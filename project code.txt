@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird</title>
+    <style>
+        body {
+            text-align: center;
+            background: linear-gradient(to bottom, #87CEEB, #228B22);
+        }
+        canvas {
+            border: 10px solid #8B4513;
+            background-image: url('https://i.postimg.cc/2LFFWCyL/360-F-114471205-0-O1m-My-KE100d-WY4kqo-DKBNYJDto53kkt.jpg');
+            background-size: cover;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 2px solid black;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Flappy Bird</h1>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+    <div id="gameOverPopup" class="popup">
+        <h2>Game Over</h2><p>Final Score: <span id='finalScore'></span></p>
+        <button onclick="restartGame()">Retry</button>
+    </div>
+    <audio id="flapSound" src="https://www.fesliyanstudios.com/play-mp3/4382"></audio>
+    <audio id="bgMusic" src="https://www.fesliyanstudios.com/play-mp3/6103" loop></audio>
+    <audio id="startSound" src="https://www.fesliyanstudios.com/play-mp3/6393"></audio>
+    <audio id="gameOverSound" src="https://www.fesliyanstudios.com/play-mp3/6496"></audio>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const gameOverPopup = document.getElementById("gameOverPopup");
+        const flapSound = document.getElementById("flapSound");
+        const bgMusic = document.getElementById("bgMusic");
+        const startSound = document.getElementById("startSound");
+        const gameOverSound = document.getElementById("gameOverSound");
+        
+        let birdImg = new Image();
+        let pipeImg = new Image();
+        
+        let bird = { x: 50, y: 150, width: 50, height: 40, velocity: 0, gravity: 0.35, lift: -7 };
+        let pipes = [];
+        let frame = 0;
+        let score = 0;
+        let gameOver = false;
+        let gameStarted = false;
+        let pipeGap = 220;
+        let pipeSpeed = 1.2;
+        
+        birdImg.src = 'bird image.png';
+        pipeImg.src = 'pipe image.png';
+        
+        function drawInitialScreen() {
+            ctx.fillStyle = "black";
+            ctx.font = "24px Arial";
+            ctx.fillText("Press any key to start", canvas.width / 4.5, canvas.height / 2);
+        }
+        
+        function startGame() {
+            if (!gameStarted) {
+                gameStarted = true;
+                startSound.play();
+                bgMusic.play();
+                update();
+            }
+            if (!gameOver) {
+                bird.velocity = bird.lift;
+                flapSound.play();
+            }
+        }
+        
+        document.addEventListener("keydown", startGame);
+        document.addEventListener("touchstart", startGame);
+        
+        function drawBird() {
+            ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+        }
+        
+        function drawPipes() {
+            pipes.forEach(pipe => {
+                ctx.drawImage(pipeImg, pipe.x, 0, pipe.width, pipe.top);
+                ctx.drawImage(pipeImg, pipe.x, pipe.bottomY, pipe.width, pipe.bottom);
+            });
+        }
+        
+        function updatePipes() {
+            if (frame % 130 === 0) {
+                let pipeHeight = Math.floor(Math.random() * (canvas.height / 2));
+                pipes.push({ x: canvas.width, width: 90, top: pipeHeight, bottom: canvas.height - pipeHeight - pipeGap, bottomY: pipeHeight + pipeGap });
+            }
+            pipes.forEach(pipe => {
+                pipe.x -= pipeSpeed;
+                if (pipe.x + pipe.width < 0) {
+                    pipes.shift();
+                    score++;
+                }
+            });
+        }
+        
+        function detectCollision() {
+            if (bird.y + bird.height >= canvas.height || bird.y <= 0) {
+                gameOver = true;
+            }
+            pipes.forEach(pipe => {
+                if (bird.x < pipe.x + pipe.width && bird.x + bird.width > pipe.x && (bird.y < pipe.top || bird.y + bird.height > pipe.bottomY)) {
+                    gameOver = true;
+                }
+            });
+            if (gameOver) showGameOver();
+        }
+        
+        function showGameOver() {
+            document.getElementById('finalScore').innerText = score;
+            gameOverPopup.style.display = "block";
+            gameOverSound.play();
+        }
+        
+        function restartGame() {
+            gameOverPopup.style.display = "none";
+            bird.y = 150;
+            bird.velocity = 0;
+            pipes = [];
+            score = 0;
+            frame = 0;
+            gameOver = false;
+            gameStarted = false;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawInitialScreen();
+        }
+        
+        function drawInitialScreen() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+            ctx.font = '30px Arial';
+            ctx.fillStyle = 'yellow';
+            ctx.textAlign = 'center';
+            ctx.fillText('Start the Game', canvas.width / 2, canvas.height / 2);
+        }
+        function update() {
+            if (gameOver) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+            updatePipes();
+            detectCollision();
+            drawBird();
+            drawPipes();
+            
+            ctx.fillStyle = "black";
+            ctx.font = "20px Arial";
+            ctx.fillText("Score: " + score, canvas.width - 80, 30);
+            frame++;
+            requestAnimationFrame(update);
+        }
+        
+        drawInitialScreen();
+    </script>
+</body>
+</html>
+
